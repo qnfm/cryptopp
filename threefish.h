@@ -167,6 +167,13 @@ public:
     {
     protected:
         void UncheckedSetKey(const byte *userKey, unsigned int keyLength, const NameValuePairs &params);
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+		// Expanded Threefish-1024 subkeys for the optional AVX-512 path.
+		// Layout: 21 subkeys * 16 64-bit words, normal Threefish word order.
+		// The buffer uses Crypto++'s aligned secure allocator through AlignedSecBlock64.
+		AlignedSecBlock64 m_avx512Subkeys;
+		bool m_useAvx512;
+#endif
     };
 
     /// \brief Encryption transformation
