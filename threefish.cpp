@@ -10,6 +10,23 @@
 #include "algparam.h"
 #include "argnames.h"
 
+
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+extern "C" {
+int Cryptopp_Threefish1024_AVX512_Available() noexcept;
+void Cryptopp_Threefish1024_AVX512_ExpandKeyFromRKeyTweak(
+    const CryptoPP::word64 rkey[17], const CryptoPP::word64 tweak[3],
+    CryptoPP::word64 subkeys[21 * 16]) noexcept;
+void Cryptopp_Threefish1024_AVX512_EncryptBlock(
+    const CryptoPP::byte inBlock[128], const CryptoPP::byte* xorBlock,
+    CryptoPP::byte outBlock[128], const CryptoPP::word64 subkeys[21 * 16]) noexcept;
+void Cryptopp_Threefish1024_AVX512_DecryptBlock(
+    const CryptoPP::byte inBlock[128], const CryptoPP::byte* xorBlock,
+    CryptoPP::byte outBlock[128], const CryptoPP::word64 subkeys[21 * 16]) noexcept;
+}
+#endif
+
+
 ANONYMOUS_NAMESPACE_BEGIN
 
 using CryptoPP::word32;
@@ -444,10 +461,25 @@ void Threefish1024::Base::UncheckedSetKey(const byte *userKey, unsigned int keyL
         m_rkey[13] ^ m_rkey[14] ^ m_rkey[15];
 
     SetTweak(params);
+
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+	m_useAvx512 = (Cryptopp_Threefish1024_AVX512_Available() != 0);
+	m_avx512Subkeys.New(21 * 16);
+	if (m_useAvx512)
+		Cryptopp_Threefish1024_AVX512_ExpandKeyFromRKeyTweak(m_rkey.begin(), m_tweak.begin(), m_avx512Subkeys.begin());
+#endif
 }
 
 void Threefish1024::Enc::ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, byte *outBlock) const
 {
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+	if (m_useAvx512)
+	{
+		Cryptopp_Threefish1024_AVX512_EncryptBlock(inBlock, xorBlock, outBlock, m_avx512Subkeys.begin());
+		return;
+	}
+#endif
+
     word64  &G0=m_wspace[0],   &G1=m_wspace[1],   &G2=m_wspace[2],   &G3=m_wspace[3];
     word64  &G4=m_wspace[4],   &G5=m_wspace[5],   &G6=m_wspace[6],   &G7=m_wspace[7];
     word64  &G8=m_wspace[8],   &G9=m_wspace[9],  &G10=m_wspace[10], &G11=m_wspace[11];
@@ -475,6 +507,14 @@ void Threefish1024::Enc::ProcessAndXorBlock(const byte *inBlock, const byte *xor
 
 void Threefish1024::Dec::ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, byte *outBlock) const
 {
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+	if (m_useAvx512)
+	{
+		Cryptopp_Threefish1024_AVX512_DecryptBlock(inBlock, xorBlock, outBlock, m_avx512Subkeys.begin());
+		return;
+	}
+#endif
+
     word64  &G0=m_wspace[0],   &G1=m_wspace[1],   &G2=m_wspace[2],   &G3=m_wspace[3];
     word64  &G4=m_wspace[4],   &G5=m_wspace[5],   &G6=m_wspace[6],   &G7=m_wspace[7];
     word64  &G8=m_wspace[8],   &G9=m_wspace[9],  &G10=m_wspace[10], &G11=m_wspace[11];
