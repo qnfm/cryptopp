@@ -23,6 +23,10 @@ void Cryptopp_Threefish1024_AVX512_EncryptBlock(
 void Cryptopp_Threefish1024_AVX512_DecryptBlock(
     const CryptoPP::byte inBlock[128], const CryptoPP::byte* xorBlock,
     CryptoPP::byte outBlock[128], const CryptoPP::word64 subkeys[21 * 16]) noexcept;
+size_t Cryptopp_Threefish1024_AVX512_AdvancedProcessBlocks(
+    const CryptoPP::byte* inBlocks, const CryptoPP::byte* xorBlocks,
+    CryptoPP::byte* outBlocks, size_t length, unsigned int flags,
+    const CryptoPP::word64 subkeys[21 * 16], int encrypt) noexcept;
 }
 #endif
 
@@ -540,5 +544,35 @@ void Threefish1024::Dec::ProcessAndXorBlock(const byte *inBlock, const byte *xor
     OutBlock oblk(xorBlock, outBlock);
     oblk(G0)(G1)(G2)(G3)(G4)(G5)(G6)(G7)(G8)(G9)(G10)(G11)(G12)(G13)(G14)(G15);
 }
+
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+unsigned int Threefish1024::Enc::OptimalNumberOfParallelBlocks() const
+{
+    return m_useAvx512 ? 8 : 1;
+}
+
+unsigned int Threefish1024::Dec::OptimalNumberOfParallelBlocks() const
+{
+    return m_useAvx512 ? 8 : 1;
+}
+
+size_t Threefish1024::Enc::AdvancedProcessBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, size_t length, word32 flags) const
+{
+    if (m_useAvx512)
+        return Cryptopp_Threefish1024_AVX512_AdvancedProcessBlocks(
+            inBlocks, xorBlocks, outBlocks, length, static_cast<unsigned int>(flags),
+            m_avx512Subkeys.begin(), 1);
+    return BlockTransformation::AdvancedProcessBlocks(inBlocks, xorBlocks, outBlocks, length, flags);
+}
+
+size_t Threefish1024::Dec::AdvancedProcessBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, size_t length, word32 flags) const
+{
+    if (m_useAvx512)
+        return Cryptopp_Threefish1024_AVX512_AdvancedProcessBlocks(
+            inBlocks, xorBlocks, outBlocks, length, static_cast<unsigned int>(flags),
+            m_avx512Subkeys.begin(), 0);
+    return BlockTransformation::AdvancedProcessBlocks(inBlocks, xorBlocks, outBlocks, length, flags);
+}
+#endif
 
 NAMESPACE_END
