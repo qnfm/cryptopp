@@ -464,9 +464,10 @@ void Threefish1024::Base::UncheckedSetKey(const byte *userKey, unsigned int keyL
 
 #if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
 	m_useAvx512 = (Cryptopp_Threefish1024_AVX512_Available() != 0);
-	m_avx512Subkeys.New(21 * 16);
-	if (m_useAvx512)
-		Cryptopp_Threefish1024_AVX512_ExpandKeyFromRKeyTweak(m_rkey.begin(), m_tweak.begin(), m_avx512Subkeys.begin());
+	if (m_useAvx512){
+	    m_avx512Subkeys.New(21 * 16);
+	    Cryptopp_Threefish1024_AVX512_ExpandKeyFromRKeyTweak(m_rkey.begin(), m_tweak.begin(), m_avx512Subkeys.begin());
+	}
 #endif
 }
 
