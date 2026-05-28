@@ -182,8 +182,15 @@ public:
     /// \since Crypto++ 6.0
     class CRYPTOPP_NO_VTABLE Enc : public Base
     {
+    public:
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+        unsigned int OptimalNumberOfParallelBlocks() const;
+#endif
     protected:
         void ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, byte *outBlock) const;
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+        size_t AdvancedProcessBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, size_t length, word32 flags) const;
+#endif
     };
 
     /// \brief Encryption transformation
@@ -192,8 +199,15 @@ public:
     /// \since Crypto++ 6.0
     class CRYPTOPP_NO_VTABLE Dec : public Base
     {
+    public:
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+        unsigned int OptimalNumberOfParallelBlocks() const;
+#endif
     protected:
         void ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, byte *outBlock) const;
+#if defined(CRYPTOPP_THREEFISH1024_AVX512_AVAILABLE)
+        size_t AdvancedProcessBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, size_t length, word32 flags) const;
+#endif
     };
 
     typedef BlockCipherFinal<ENCRYPTION, Enc> Encryption;
