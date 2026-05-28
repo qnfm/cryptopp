@@ -132,7 +132,10 @@ size_t FileStore::TransferTo2(BufferedTransformation &target, lword &transferByt
 	size_t spaceSize, blockedBytes;
 	while (size && m_stream->good())
 	{
-		spaceSize = 1024;
+		// 64KB buffer for efficient processing. Smaller values (e.g. 1024) cause
+		// AuthenticatedDecryptionFilter's tag-reservation queue to fragment data into
+		// chunks smaller than the block cipher's parallel processing threshold.
+		spaceSize = 65536;
 		m_space = HelpCreatePutSpace(target, channel, 1, UnsignedMin(size_t(SIZE_MAX), size), spaceSize);
 		m_stream->read((char *)m_space, (std::streamsize)STDMIN(size, (lword)spaceSize));
 		m_len = (size_t)m_stream->gcount();
